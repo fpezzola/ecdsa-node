@@ -1,7 +1,8 @@
 import { useState } from "react";
 import server from "./server";
+import { sign, recoverPublicKey } from "./utils/signer";
 
-function Transfer({ address, setBalance }) {
+function Transfer({ address, setBalance,privateKey }) {
   const [sendAmount, setSendAmount] = useState("");
   const [recipient, setRecipient] = useState("");
 
@@ -11,13 +12,14 @@ function Transfer({ address, setBalance }) {
     evt.preventDefault();
 
     try {
-      const {
-        data: { balance },
-      } = await server.post(`send`, {
-        sender: address,
+      const tx = {
         amount: parseInt(sendAmount),
         recipient,
-      });
+      }
+      const signature = sign(JSON.stringify(tx),privateKey)
+      const {
+        data: { balance },
+      } = await server.post(`send`, { tx, signature:{ hex: signature.toCompactHex(),recoveryBit:signature.recovery }});
       setBalance(balance);
     } catch (ex) {
       alert(ex.response.data.message);
